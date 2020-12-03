@@ -1,12 +1,3 @@
-
-self.addEventListener('install', event => {
-
-    // Caution: skipWaiting() means that your new service worker is likely controlling pages that were loaded with an older version. 
-    // This means some of your page's fetches will have been handled by your old service worker, but your new service worker will be handling subsequent fetches. 
-    // If this might break things, don't use skipWaiting().
-    //self.skipWaiting();
-});
-
 self.addEventListener('fetch', event => {
 
     // Response with TEXT

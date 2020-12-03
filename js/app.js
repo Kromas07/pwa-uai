@@ -1,5 +1,6 @@
 
+const SW_TO_USE = '/sw-caching.js';
 
 if (navigator.serviceWorker) {
-    navigator.serviceWorker.register('/sw-basico.js');
+    navigator.serviceWorker.register(SW_TO_USE);
 }
