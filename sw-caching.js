@@ -17,7 +17,7 @@ self.addEventListener('install', e => {
                 '/',
                 '/index.html',
                 '/offline.html',
-                '/css/style.css',
+                '/css/estilos.css',
                 '/img/banner.jpeg',
                 '/js/app.js',
                 '/favicon.ico',

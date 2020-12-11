@@ -1,4 +1,4 @@
-const cacheActual = 'epUNLaM-42';
+const cacheActual = 'epUNLaM-51';
 
 const paginasModificadas = [
     'u10_vi_archivos.html',
@@ -32,8 +32,7 @@ const paginasModificadas = [
 ];
 
 const recursosACopiar = [
-    'css/style.css'
-    //   'css/estilos.css',
+    'css/estilos.css',
     //   'css/materialize.min.css',
     //   'js/materialize.min.js',
     //   'icons/apoyo.svg',
@@ -81,49 +80,50 @@ const recursosACopiar = [
     //   'unidades.html'
 ];
 
-// Hola Franco te voy a enviar un artículo para que leas y te propongo que comiences a trabajar en el versionado, 
-// esto es si detectas una versión nueva, el número de versión estará atrás del archivo, 
-// pero es consecutiva a la ya instalada se descarga solo aquello que cambio, sino se instala todo.
-
-
 self.addEventListener("install", function (event) {
     console.log("Installing...");
-    
-    const cacheAnterior = cacheActual.split('-')[0] + '-' + (cacheActual.split('-')[1] - 1);
+
+    const cacheSplit = cacheActual.split('-');
+    const cacheAnterior = `${cacheSplit[0]}-${(cacheSplit[1] - 1)}`;
+
     console.log(cacheAnterior);
 
-    let response = caches.keys().then(keys => {
-        keys.forEach(key => {
-            if (key === cacheAnterior) {
-                console.log("Existe cache con versión -1");
+    // Pregunto si existe el cache anterior
+    const response = caches.has(cacheAnterior).then(async existeCacheAnterior => {
+        return existeCacheAnterior;
+    })
+        .then(existeCacheAnterior => {
 
-                //aca va la logica de pedir solo lo necesario
+            console.log("Existe cache", existeCacheAnterior)
+
+            if (existeCacheAnterior) {
+
                 caches.open(cacheActual).then(async cache => {
-                    var recursos, recursosNoEncontrados = [];
-                    recursos = paginasModificadas.concat(recursosACopiar);
 
-                    console.log(recursos);
+                    caches.open(cacheAnterior).then(async cacheVersionAnterior => {
 
-                    await Promise.all(recursos.map(async (url) => {
-                        console.log(url);
-                        const response = await caches.match(url);
-                        if (response) {
-                            console.log("Existe", url);
-                            cache.put(url, response);
-                        } else {
-                            console.log("No existe", url);
-                            recursosNoEncontrados.push(url);
-                            return Promise.resolve();
-                        }
+                        var recursos, recursosNoEncontrados = [];
+                        // Si existe un cache con version -1 genero un array con todos los recursos para analizar cuales existen en el cache viejo
+                        recursos = recursosACopiar.concat(paginasModificadas);
+
+                        await Promise.all(recursos.map(async (url) => {
+                            // solo analizamos si existe en el cache viejo
+                            const response = await cacheVersionAnterior.match(url);
+                            if (response) {
+                                // Existe el recurso
+                                cache.put(url, response);
+                            } else {
+                                recursosNoEncontrados.push(url);
+                                return Promise.resolve();
+                            }
+                        })
+                        );
+
+                        return cache.addAll(recursosNoEncontrados);
                     })
-                    );
-                    console.log("Recursos a agregar", recursosNoEncontrados);
-                    return cache.addAll(recursosNoEncontrados);
                 })
-
             } else {
-
-                // "No existe cache con versión -1 - Por lo tanto bajamos todo
+                // No existe cache con versión -1 - Por lo tanto bajamos todo
                 caches.open(cacheActual).then(function (cache) {
                     var newImmutableRequests = [];
                     return Promise.all(
@@ -142,32 +142,26 @@ self.addEventListener("install", function (event) {
                     });
                 })
             }
-        })
-    })
 
+
+        })
 
     event.waitUntil(response);
 });
 
 self.addEventListener('fetch', function (event) {
-    //console.log("Fetching...");
     event.respondWith(
         caches.match(event.request)
             .then(function (response) {
-
                 if (response) {
-                    // console.log("Existe en cache");
                     return response;
                 }
-
-                // console.log("No existe en cache");
                 return fetch(event.request);
             })
     );
 });
 
 self.addEventListener("activate", function (event) {
-    console.log("Activating...");
     event.waitUntil(
         caches.keys().then(function (cacheNames) {
             return Promise.all(
