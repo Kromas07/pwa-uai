@@ -1,4 +1,4 @@
-const cacheActual = 'epUNLaM-51';
+const cacheActual = 'epUNLaM-56';
 
 const paginasModificadas = [
     'u10_vi_archivos.html',
@@ -96,17 +96,17 @@ self.addEventListener("install", function (event) {
 
             console.log("Existe cache", existeCacheAnterior)
 
-            if (existeCacheAnterior) {
+            caches.open(cacheActual).then(async cache => {
 
-                caches.open(cacheActual).then(async cache => {
+                // Si existe un cache con version -1 
+                if (existeCacheAnterior) {
 
+                    // Abrimos el cache anterior y recorremos los recursos a copiar para ver si los encontramos
                     caches.open(cacheAnterior).then(async cacheVersionAnterior => {
 
-                        var recursos, recursosNoEncontrados = [];
-                        // Si existe un cache con version -1 genero un array con todos los recursos para analizar cuales existen en el cache viejo
-                        recursos = recursosACopiar.concat(paginasModificadas);
+                        var recursosNoEncontrados = [];
 
-                        await Promise.all(recursos.map(async (url) => {
+                        await Promise.all(recursosACopiar.map(async (url) => {
                             // solo analizamos si existe en el cache viejo
                             const response = await cacheVersionAnterior.match(url);
                             if (response) {
@@ -119,31 +119,28 @@ self.addEventListener("install", function (event) {
                         })
                         );
 
-                        return cache.addAll(recursosNoEncontrados);
+                        return cache.addAll(recursosNoEncontrados.concat(paginasModificadas));
                     })
-                })
-            } else {
-                // No existe cache con versión -1 - Por lo tanto bajamos todo
-                caches.open(cacheActual).then(function (cache) {
-                    var newImmutableRequests = [];
-                    return Promise.all(
-                        recursosACopiar.map(function (url) {
-                            return caches.match(url).then(function (response) {
-                                if (response) {
-                                    return cache.put(url, response);
-                                } else {
-                                    newImmutableRequests.push(url);
-                                    return Promise.resolve();
-                                }
-                            });
-                        })
-                    ).then(function () {
-                        return cache.addAll(newImmutableRequests.concat(paginasModificadas));
-                    });
-                })
-            }
+                } else {
 
+                    // No existe cache con versión -1 - Por lo que cacheamos todo
+                    return cache.addAll(recursosACopiar.concat(paginasModificadas));
 
+                    // var newImmutableRequests = [];
+                    // await Promise.all(recursosACopiar.map(async (url) => {
+                    //     const response = await caches.match(url);
+                    //     if (response) {
+                    //         return cache.put(url, response);
+                    //     } else {
+                    //         newImmutableRequests.push(url);
+                    //         return Promise.resolve();
+                    //     }
+                    // })
+                    // );
+
+                    // return cache.addAll(newImmutableRequests.concat(paginasModificadas));
+                }
+            })
         })
 
     event.waitUntil(response);
