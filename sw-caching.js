@@ -14,14 +14,14 @@ self.addEventListener('install', e => {
 
             // always with slash
             return cache.addAll([
-                '/',
-                '/index.html',
-                '/offline.html',
-                '/css/estilos.css',
-                '/img/banner.jpeg',
-                '/js/app.js',
-                '/favicon.ico',
-                'https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css'
+                // '/',
+                // '/index.html',
+                // '/offline.html',
+                // '/css/estilos.css',
+                // '/img/banner.jpeg',
+                // '/js/app.js',
+                // '/favicon.ico',
+                // 'https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css'
             ]);
 
         });
