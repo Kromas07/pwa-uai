@@ -1,19 +1,19 @@
-const cacheActual = 'epUNLaM-56';
+const CACHE_ACTUAL = 'epUNLaM-56';
 const STATIC_CACHE = 'static-v1';
 
 const paginasModificadas = [
-    'u10_vi_archivos.html',
-    'u11_vi_archivos.html',
-    'u12_vi_archivos.html'
+    // 'u10_vi_archivos.html',
+    // 'u11_vi_archivos.html',
+    // 'u12_vi_archivos.html'
 ];
 
 const recursosACopiar = [
     '/',
-    'css/estilos.css',
-    'favicon.ico',
+    // 'css/estilos.css',
+    // 'favicon.ico',
     'img/banner.jpeg',
-    'img/no-img.jpg',
-    'js/app.js'
+    // 'img/no-img.jpg',
+    // 'js/app.js'
 ];
 
 
@@ -38,7 +38,7 @@ function openDatabaseAndReplayRequests() {
 
 self.addEventListener("install", function (event) {
 
-    const cacheSplit = cacheActual.split('-');
+    const cacheSplit = CACHE_ACTUAL.split('-');
     const cacheAnterior = `${cacheSplit[0]}-${(cacheSplit[1] - 1)}`;
 
     // Pregunto si existe el cache anterior
@@ -47,7 +47,7 @@ self.addEventListener("install", function (event) {
     })
         .then(existeCacheAnterior => {
 
-            caches.open(cacheActual).then(async cache => {
+            caches.open(CACHE_ACTUAL).then(async cache => {
 
                 // Si existe un cache con version -1 
                 if (existeCacheAnterior) {
@@ -85,72 +85,73 @@ self.addEventListener("install", function (event) {
 
 self.addEventListener('fetch', function (event) {
 
-    // console.log(event.request.url);
-
     // event.respondWith(
     //     caches.match(event.request)
     //         .then(function (response) {
     //             if (response) {
+    //                 const date = new Date(response.headers.get('date'));
+    //                 console.log(date);
+    //                 console.log(date.getTime() + 1000 * 60 * 60 * 6)
     //                 return response;
     //             }
     //             return fetch(event.request);
     //         })
     // );
 
-    // The problem here is that dynamic content is mixed with inmutable content
-    const response = caches.match(event.request)
-        .then(res => {
-
+    const fetchRequest = caches.match(event.request)
+        .then(cachedResponse => {
             // console.log("Fetching...");
-            console.log(event.request.url);
+            // console.log(event.request.url);
+
+            if (!cachedResponse) { return fetch(event.request) }
+
+            const cachedDate = new Date(cachedResponse.headers.get('date'));
+            // console.log(date);
+            console.log(cachedDate.getTime());
+
             const file = event.request.url.split('/').pop();
+
             // console.log(file);
 
-            return fetch("http://localhost:3000/files?name=" + file)
+            // si no existe file en el request - es para el caso que se catchea /
+            if (!file) { return fetch(event.request) }
+
+            return fetch("https://localhost:44348/api/ActualizacionArchivo/" + file)
                 .then(r => r.json())
                 .then(response => {
-                    // If the request exists
-                    // if (res) return res;
+
+                    // console.log(response);
+
+                    // si no existe información guardada en la base (no debería pasar) 
+                    if (!response) { return cachedResponse; }
 
 
-                    console.log(response);
+                    const fechaActualizacion = new Date(response);
+                    // console.log(fechaActualizacion);
+                    console.log(fechaActualizacion.getTime());
 
+                    // si el archivo fue actualizado posteriormente a la fecha del cache, tengo que hacer un fetch
+                    if (cachedDate < fechaActualizacion) { 
+                        console.log(`Archivo ${file} descargado nuevamente`);
 
-                    if (response.length == 0) {
-                        fetch("http://localhost:3000/files", {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ name: file, date: new Date() }) // body data type must match "Content-Type" header
-                        });
+                        caches.open(CACHE_ACTUAL).then(cache => {
+                            return fetch(event.request).then(newResponse => {
+                                cache.put(event.request, newResponse.clone())
+                                return newResponse;
+                            })
+                        })
+                        
                     }
 
-                    try {
-                        console.log(file + " " + response[0].date);
-                    } catch (error) {
-                        console.log(error);
-                    }
-
-                    // If not exists, we have to go to the web
-                    return fetch(event.request).then(newResp => {
-
-                        // Here we save the response on the dynamic cache
-                        caches.open(STATIC_CACHE)
-                            .then(cache => {
-                                cache.put(event.request, newResp);
-                            });
-
-                        // We need to clone because 'Response body is already used'
-                        return newResp.clone();
-                    })
+                    console.log("Cached response");
+                    return cachedResponse;
                 })
 
 
         });
 
 
-    event.respondWith(response);
+    event.respondWith(fetchRequest);
 });
 
 openDatabaseAndReplayRequests();
@@ -161,7 +162,7 @@ self.addEventListener("activate", function (event) {
             return Promise.all(
                 cacheNames.map(function (cacheVieja) {
 
-                    if (cacheVieja !== cacheActual) {
+                    if (cacheVieja !== CACHE_ACTUAL) {
                         return caches.delete(cacheVieja);
                     }
                 })
