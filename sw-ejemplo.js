@@ -1,50 +1,33 @@
 const CACHE_ACTUAL = 'epUNLaM-56';
 const STATIC_CACHE = 'static-v1';
+const API_URL_ACTUALIZACION = 'https://localhost:44348/api/DatosActualizacion/';
 
 const paginasModificadas = [
     // 'u10_vi_archivos.html',
     // 'u11_vi_archivos.html',
     // 'u12_vi_archivos.html'
+    'clientes.html'
 ];
 
 const recursosACopiar = [
     '/',
-    // 'css/estilos.css',
-    // 'favicon.ico',
+    'css/estilos.css',
+    'favicon.ico',
     'img/banner.jpeg',
-    // 'img/no-img.jpg',
-    // 'js/app.js'
+    'img/no-img.jpg',
+    'js/app.js',
+    'https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css'
 ];
 
-
-var idbDatabase;
-
-// https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Using_IndexedDB
-function openDatabaseAndReplayRequests() {
-    var indexedDBOpenRequest = indexedDB.open('service-worker', 1);
-
-    indexedDBOpenRequest.onerror = function (error) {
-        console.error('IndexedDB error:', error);
-    };
-
-    indexedDBOpenRequest.onupgradeneeded = function () {
-        this.result.createObjectStore('files', { keyPath: 'file' });
-    };
-
-    indexedDBOpenRequest.onsuccess = function () {
-        idbDatabase = this.result;
-    };
-}
-
-self.addEventListener("install", function (event) {
+self.addEventListener("install", function(event) {
 
     const cacheSplit = CACHE_ACTUAL.split('-');
     const cacheAnterior = `${cacheSplit[0]}-${(cacheSplit[1] - 1)}`;
 
     // Pregunto si existe el cache anterior
     const response = caches.has(cacheAnterior).then(async existeCacheAnterior => {
-        return existeCacheAnterior;
-    })
+            return existeCacheAnterior;
+        })
         .then(existeCacheAnterior => {
 
             caches.open(CACHE_ACTUAL).then(async cache => {
@@ -57,7 +40,7 @@ self.addEventListener("install", function (event) {
 
                         var recursosNoEncontrados = [];
 
-                        await Promise.all(recursosACopiar.map(async (url) => {
+                        await Promise.all(recursosACopiar.map(async(url) => {
                             // solo analizamos si existe en el cache viejo
                             const response = await cacheVersionAnterior.match(url);
                             if (response) {
@@ -67,8 +50,7 @@ self.addEventListener("install", function (event) {
                                 recursosNoEncontrados.push(url);
                                 return Promise.resolve();
                             }
-                        })
-                        );
+                        }));
 
                         return cache.addAll(recursosNoEncontrados.concat(paginasModificadas));
                     })
@@ -83,67 +65,53 @@ self.addEventListener("install", function (event) {
     event.waitUntil(response);
 });
 
-self.addEventListener('fetch', function (event) {
-
-    // event.respondWith(
-    //     caches.match(event.request)
-    //         .then(function (response) {
-    //             if (response) {
-    //                 const date = new Date(response.headers.get('date'));
-    //                 console.log(date);
-    //                 console.log(date.getTime() + 1000 * 60 * 60 * 6)
-    //                 return response;
-    //             }
-    //             return fetch(event.request);
-    //         })
-    // );
+self.addEventListener('fetch', function(event) {
 
     const fetchRequest = caches.match(event.request)
         .then(cachedResponse => {
-            // console.log("Fetching...");
-            // console.log(event.request.url);
 
-            if (!cachedResponse) { return fetch(event.request) }
+            if (!event.request.url.includes('api')) { return cachedResponse; }
+
+            if (!navigator.onLine) { return cachedResponse; }
+
+            if (!cachedResponse) {
+
+                return caches.open(CACHE_ACTUAL).then(cache => {
+                    return fetch(event.request).then(newResponse => {
+                        cache.put(event.request, newResponse.clone());
+                        return newResponse;
+                    });
+                });
+            }
 
             const cachedDate = new Date(cachedResponse.headers.get('date'));
-            // console.log(date);
-            console.log(cachedDate.getTime());
 
-            const file = event.request.url.split('/').pop();
+            const apiRequested = event.request.url.split('/').pop();
 
-            // console.log(file);
+            // Si no son datos dinamicos por no ser API
+            if (!apiRequested) { return fetch(event.request); }
 
-            // si no existe file en el request - es para el caso que se catchea /
-            if (!file) { return fetch(event.request) }
-
-            return fetch("https://localhost:44348/api/ActualizacionArchivo/" + file)
-                .then(r => r.json())
+            return fetch(API_URL_ACTUALIZACION + apiRequested)
+                .then(r => r.text())
                 .then(response => {
-
-                    // console.log(response);
 
                     // si no existe información guardada en la base (no debería pasar) 
                     if (!response) { return cachedResponse; }
 
+                    const fechaActualizacion = new Date(JSON.parse(response));
 
-                    const fechaActualizacion = new Date(response);
-                    // console.log(fechaActualizacion);
-                    console.log(fechaActualizacion.getTime());
+                    // si la información fue actualizada posteriormente a la fecha del cache, tengo que hacer un fetch y guardarla
+                    if (cachedDate < fechaActualizacion) {
 
-                    // si el archivo fue actualizado posteriormente a la fecha del cache, tengo que hacer un fetch
-                    if (cachedDate < fechaActualizacion) { 
-                        console.log(`Archivo ${file} descargado nuevamente`);
-
-                        caches.open(CACHE_ACTUAL).then(cache => {
-                            return fetch(event.request).then(newResponse => {
-                                cache.put(event.request, newResponse.clone())
-                                return newResponse;
-                            })
-                        })
-                        
+                        //Cache with Network Fallback
+                        return fetch(event.request).then(newResponse => {
+                            caches.open(CACHE_ACTUAL)
+                                .then(cache => {
+                                    cache.put(event.request, newResponse);
+                                });
+                            return newResponse.clone();
+                        });
                     }
-
-                    console.log("Cached response");
                     return cachedResponse;
                 })
 
@@ -154,13 +122,11 @@ self.addEventListener('fetch', function (event) {
     event.respondWith(fetchRequest);
 });
 
-openDatabaseAndReplayRequests();
-
-self.addEventListener("activate", function (event) {
+self.addEventListener("activate", function(event) {
     event.waitUntil(
-        caches.keys().then(function (cacheNames) {
+        caches.keys().then(function(cacheNames) {
             return Promise.all(
-                cacheNames.map(function (cacheVieja) {
+                cacheNames.map(function(cacheVieja) {
 
                     if (cacheVieja !== CACHE_ACTUAL) {
                         return caches.delete(cacheVieja);
@@ -172,5 +138,3 @@ self.addEventListener("activate", function (event) {
 
     return self.clients.claim(); //fuerza que todos los clientes se actualicen
 });
-
-

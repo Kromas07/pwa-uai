@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>PWA UAI</title>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
+
+<body class="container p-3">
+
+    <h3>Clientes</h3>
+
+    <br>
+
+    <h5 id="offline" style="display: none; color: red">Los datos pueden estar desactualizados</h5>
+
+    <ul id="listadoClientes" style="color: white">
+
+    </ul>
+
+    <button onclick="getClientes()">CARGAR CLIENTES</button>
+    <script src="js/app.js"></script>
+
+</body>
+
+</html>
