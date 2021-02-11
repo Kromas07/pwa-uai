@@ -1,13 +1,7 @@
-const CACHE_ACTUAL = 'epUNLaM-56';
-const STATIC_CACHE = 'static-v1';
+const CACHE_ACTUAL = 'cache-7';
 const API_URL_ACTUALIZACION = 'https://localhost:44348/api/DatosActualizacion/';
 
-const paginasModificadas = [
-    // 'u10_vi_archivos.html',
-    // 'u11_vi_archivos.html',
-    // 'u12_vi_archivos.html'
-    'clientes.html'
-];
+const paginasModificadas = [];
 
 const recursosACopiar = [
     '/',
@@ -16,7 +10,10 @@ const recursosACopiar = [
     'img/banner.jpeg',
     'img/no-img.jpg',
     'js/app.js',
-    'https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css'
+    'https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css',
+    'clientes.html',
+    'about.html',
+    'faq.html'
 ];
 
 self.addEventListener("install", function(event) {
@@ -88,7 +85,6 @@ self.addEventListener('fetch', function(event) {
 
             const apiRequested = event.request.url.split('/').pop();
 
-            // Si no son datos dinamicos por no ser API
             if (!apiRequested) { return fetch(event.request); }
 
             return fetch(API_URL_ACTUALIZACION + apiRequested)
@@ -114,10 +110,7 @@ self.addEventListener('fetch', function(event) {
                     }
                     return cachedResponse;
                 })
-
-
         });
-
 
     event.respondWith(fetchRequest);
 });
