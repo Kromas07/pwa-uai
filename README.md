@@ -30,4 +30,3 @@ https://blog.catchpoint.com/2017/04/25/impact-of-web-caching/
 https://arxiv.org/pdf/1805.11721.pdf
 https://www.3pillarglobal.com/insights/blog-posts/how-web-caching-improves-internet-performance/
 https://www.ias.ac.in/article/fulltext/reso/007/07/0054-0062#:~:text=The%20World%20Wide%20Web%20has,time%20reduces%20the%20network%20traffic.
-file:///C:/Users/cifue/Downloads/Web_caching_and_prefetching_What_why_and_how.pdf
